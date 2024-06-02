@@ -6,6 +6,17 @@ Docker containers:
 - Attacker
 - Sender
 - Receiver
+
+### Creating Containers
+```
+docker network create --subnet=172.18.0.0/16 MITM_net
+
+docker run -itd --name sender --network MITM_net --ip 172.18.0.3 ubuntu
+docker run -itd --name receiver --network MITM_net --ip 172.18.0.4 ubuntu
+docker run -itd --name attacker --network MITM_net --ip 172.18.0.2 ubuntu
+```
+
+
 In this project, the attack is emulated to be within the same network as the sender and receiver to use ARP attacks
 ## Installation
 Newly created dockers will require packages such as ifconfig or ping.
