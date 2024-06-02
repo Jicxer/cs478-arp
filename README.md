@@ -13,7 +13,7 @@ docker network create --subnet=172.18.0.0/16 MITM_net
 
 docker run -itd --name sender --network MITM_net --ip 172.18.0.3 ubuntu
 docker run -itd --name receiver --network MITM_net --ip 172.18.0.4 ubuntu
-docker run -itd --name attacker --network MITM_net --ip 172.18.0.2 ubuntu
+docker run -itd --name attacker --network MITM_net --ip --privileged 172.18.0.2 ubuntu
 ```
 
 
