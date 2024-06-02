@@ -28,6 +28,7 @@ The setup.sh will take care of installing packages for new docker containers
 - ifconfig
 - sudo
 - ping
+- iperf3
 #### Attacker Container
 Installed dependencies:
 - default container dependencies
@@ -47,8 +48,39 @@ The python script contains three attacks:
 2. ARP Flooding
 3. Session Hijacking
 The script will prompt the user for a specific attack once the correct arguments are specified.
-### Wireshark and TCPdump
+### Network Analysis
 To capture packets on an interface, store it into a file, and inspect it on wireshark:
+
+#### iperf3
+ipfer3 is a tool for active measurements of the maximum achievable bandwidth on IP networks. It allows measuring of the network throughput, packet loss, jitter, and other performances between endpoints.
+
+The metric variables are:
+- Interval:
+    Time interval between measurement in seconds
+- Transfer:
+    The amount of data transferred in the interval
+- Bandwidth:
+    The data transer rate during the interval measured in Mbits/sec or Gbits/sec
+- Retr:
+    The number of retransmission that occured for TCP tests (High retransmissions indicate packet loss or network issues)
+- Cwnd:
+    TCP congestion window size (high cwnd indicates more data in flight before acknowledgement is required; increases the overall throughput of the connection)
+
+These metrics, especially Retr and Cwnd, will be examined for DOS attacks such as ARP flooding.
+
+iperf3 uses a server-cliend model where one endpoint acts as a server and another a client. This supports TCP and UDP protocols.
+##### Receiver
+The receiver will act as the server
+```
+iperf3 -s
+```
+
+##### Sender
+The sender will act as the client.
+```
+iperf3 -c <server_ip>
+```
+
 #### tcpdump
 ```
 tcpdump -i eth0 -w <output_file>.pcap

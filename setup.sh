@@ -5,6 +5,7 @@ default_container(){
     echo "Installing default packages such as ping or ifconfig"
     apt-get update && apt-get install sudo -y
     apt-get install net-tools -y && apt-get install iputils-ping -y
+    apt-get install iperf3 -y
 }
 
 attacker_container(){

