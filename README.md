@@ -82,12 +82,13 @@ iperf3 -c <server_ip>
 ```
 
 #### tcpdump
+Open another terminal within the attacker container and execute wireshark and tcpdump respectively
 ```
 tcpdump -i eth0 -w <output_file>.pcap
 ```
 TCPdump will listen on the eth0 interface and write the output to a specified file in the pcap format
 #### Wireshark
-To visualize the captured packets based on pcap file using wireshark:
+To visualize the captured packets based on pcap file using wireshark on another terminal:
 ```
 wireshark <output_file>.pcap
 ```
