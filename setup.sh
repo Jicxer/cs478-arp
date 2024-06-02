@@ -9,7 +9,7 @@ default_container(){
 
 attacker_container(){
     echo "running attacker script"
-    apt-get install python3-scapy
+    apt-get install python3-scapy -y
     apt-get install tcpdump -y
     apt-get install wireshark -y
 }
