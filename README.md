@@ -75,6 +75,11 @@ The receiver will act as the server
 iperf3 -s
 ```
 
+Additionally, the receiver can also act as a server using python
+```
+python3 -m http.server 80
+```
+
 ##### Sender
 The sender will act as the client.
 ```
