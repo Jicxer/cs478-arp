@@ -7,7 +7,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         session_id = None
-        self.protocol_version = 'HTTP/1.0'
+        self.protocol_version = 'HTTP/1.1'
 
         # Check if a cookie is set
         if 'Cookie' in self.headers:
